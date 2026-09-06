@@ -1,10 +1,34 @@
 /** @type {import('next').NextConfig} */
 
+const isDev = process.env.NODE_ENV !== 'production';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://*.supabase.co';
+
+// Content Security Policy — 'unsafe-eval' is only needed by Turbopack/React Refresh,
+// so it is stripped out of production builds.
+const csp = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  `connect-src 'self' ${supabaseUrl} wss://*.supabase.co${
+    isDev ? ' ws://localhost:3000 ws://192.168.78.1:3000' : ''
+  }`,
+  "img-src 'self' data: blob: https://*.supabase.co",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
 const nextConfig = {
+  // Hostnames only — no protocol, no port. Covers all ports on that host.
+  allowedDevOrigins: ['192.168.78.1'],
+
   // Strict mode for catching bugs early
   reactStrictMode: true,
 
-  // Image optimisation — allow GCTU crest domain if hosted externally
+  // Image optimisation — allow Supabase public storage
   images: {
     remotePatterns: [
       {
@@ -24,44 +48,42 @@ const nextConfig = {
         source: '/(.*)',
         headers: [
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload'
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
           },
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
-              `connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://*.supabase.co'} wss://*.supabase.co`,
-              "img-src 'self' data: blob: https://*.supabase.co",
-              "frame-ancestors 'none'",
-            ].join('; ')
-          }
+          // HSTS is meaningless over plain HTTP and can pin localhost to HTTPS,
+          // so it is production-only.
+          ...(isDev
+            ? []
+            : [
+                {
+                  key: 'Strict-Transport-Security',
+                  value: 'max-age=63072000; includeSubDomains; preload',
+                },
+              ]),
+          { key: 'Content-Security-Policy', value: csp },
         ],
       },
-    ]
+    ];
   },
 
-  // Redirect www to non-www in production
+  // Redirect www to non-www in production (all paths, not just root)
   async redirects() {
-    return process.env.NODE_ENV === 'production'
-      ? [
+    return isDev
+      ? []
+      : [
           {
-            source: '/',
+            source: '/:path*',
             has: [{ type: 'host', value: 'www.your-domain.com' }],
-            destination: 'https://your-domain.com/',
+            destination: 'https://your-domain.com/:path*',
             permanent: true,
           },
-        ]
-      : []
+        ];
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

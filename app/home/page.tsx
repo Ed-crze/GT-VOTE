@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useNavigate } from '@/lib/hooks'
+import { ChevronDown } from 'lucide-react'
 
 type Stats = {
   registeredVoters: number
@@ -12,6 +13,14 @@ type Stats = {
   endTime: string | null
   faculties: { name: string; count: number; pct: number }[]
 }
+
+// ── Support contacts ────────────────────────────────────────────────────────
+// PLACEHOLDERS — replace both with the official GT-Vote support details before
+// launch. The .example domain is reserved and can never deliver mail, so a
+// forgotten placeholder fails loudly instead of silently swallowing a student's
+// message.
+const SUPPORT_EMAIL = 'support@gtvote.example'   // TODO: official support inbox
+const SUPPORT_PHONE = '+233 00 000 0000'         // TODO: official support line
 
 export default function HomePage() {
   const { navigateTo, fadingOut } = useNavigate()
@@ -33,6 +42,10 @@ export default function HomePage() {
   function goToSlide(idx: number) {
     setSlide(idx)
     startAutoPlay() // reset timer on manual tap
+  }
+
+  function scrollToInfo() {
+    document.getElementById('voter-info')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const touchStartX = useRef<number | null>(null)
@@ -184,6 +197,7 @@ export default function HomePage() {
   ]
 
   return (
+    <>
     <div className={`min-h-[100dvh] flex flex-col items-center justify-between py-10 px-6 ${fadingOut ? 'content-fade-out' : 'content-fade-in'}`}>
 
       {/* Top */}
@@ -246,8 +260,62 @@ export default function HomePage() {
           Powered by <span className="text-gold font-semibold">GT-Vote</span> — A secure e-voting system by GCTU IT Students<br />
           © 2025 Ghana Communication Technology University
         </p>
+
+        {/* The hero is exactly one viewport tall, so without this the section
+            below the fold has nothing pointing at it. */}
+        <button
+          onClick={scrollToInfo}
+          className="flex flex-col items-center gap-0.5 text-[0.62rem] font-bold text-white/40 uppercase tracking-widest transition-colors duration-200 hover:text-gold"
+        >
+          Voting info below
+          <ChevronDown size={16} className="animate-bounce" />
+        </button>
       </div>
 
     </div>
+
+    {/* ── Voter information ── */}
+    <section
+      id="voter-info"
+      className={`w-full px-6 pb-14 flex justify-center ${fadingOut ? 'content-fade-out' : 'content-fade-in'}`}
+    >
+      <div className="w-full max-w-sm">
+
+        <div className="mb-9" style={{ borderTop: '1px solid rgba(255,255,255,0.15)' }} />
+
+        <h2 className="text-xl font-black text-white mb-2">Who can vote</h2>
+        <p className="text-sm text-white/60 leading-relaxed mb-9">
+          Every GCTU student whose ID appears on the official voter register for this election. Register with your
+          student ID and your GCTU email (yourID@live.gctu.edu.gh) — one student, one vote.
+        </p>
+
+        <h2 className="text-xl font-black text-white mb-2">Your ballot is secret</h2>
+        <p className="text-sm text-white/60 leading-relaxed mb-9">
+          Your details confirm you are eligible and stop double voting. They are never stored with your choices —
+          nobody, including the electoral committee and the system administrators, can see how you voted.
+        </p>
+
+        <h2 className="text-xl font-black text-white mb-2">If you need help</h2>
+        <p className="text-sm text-white/60 leading-relaxed break-words">
+          Trouble signing in, registering, or casting your vote? Contact GT-Vote support on{' '}
+          <a
+            href={`tel:${SUPPORT_PHONE.replace(/\s/g, '')}`}
+            className="text-gold font-semibold underline underline-offset-2 decoration-gold/40 transition-colors duration-200 hover:decoration-gold"
+          >
+            {SUPPORT_PHONE}
+          </a>{' '}
+          or{' '}
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="text-gold font-semibold underline underline-offset-2 decoration-gold/40 transition-colors duration-200 hover:decoration-gold"
+          >
+            {SUPPORT_EMAIL}
+          </a>
+          . Have your student ID ready.
+        </p>
+
+      </div>
+    </section>
+    </>
   )
 }
